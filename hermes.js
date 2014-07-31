@@ -28,15 +28,21 @@
         'MSTransitionEnd'
     ];
 
-    function addEndEventListeners(target, listener) {
-        for (var i = 0, len = endEvents.length; i < len; i++) {
-            target.addEventListener(endEvents[i], listener);
-        }
-    }
+    var endEventsLength = endEvents.length;
 
-    function removeEndEventListeners(target, listener) {
-        for (var i = 0, len = endEvents.length; i < len; i++) {
-            target.removeEventListener(endEvents[i], listener);
+    function onceEnd(target, callback) {
+        function executeCallback(event) {
+            event.stopPropagation();
+
+            for (var i = 0; i < endEventsLength; i++) {
+                target.removeEventListener(endEvents[i], executeCallback);
+            }
+
+            callback();
+        }
+
+        for (var i = 0; i < endEventsLength; i++) {
+            target.addEventListener(endEvents[i], executeCallback);
         }
     }
 
@@ -63,17 +69,11 @@
 
             li.classList.add.apply(li.classList, style.in);
 
-            function listener(event) {
-                event.stopPropagation();
-
-                removeEndEventListeners(li, listener);
-
+            onceEnd(li, function listener() {
                 li.classList.remove.apply(li.classList, style.in);
 
                 callback();
-            }
-
-            addEndEventListeners(li, listener);
+            });
         }
 
         function pause(callback) {
@@ -99,17 +99,11 @@
 
             li.classList.add.apply(li.classList, style.out);
 
-            function listener(event) {
-                event.stopPropagation();
-
-                removeEndEventListeners(li, listener);
-
+            onceEnd(li, function listener() {
                 li.parentNode.removeChild(li);
 
                 afterEnd();
-            }
-
-            addEndEventListeners(li, listener);
+            });
         }
 
         // The callback to the in animation should trigger a pause, and then animate out.
@@ -225,7 +219,6 @@
         return;
     }
 
-    // Finally, if the module is being loaded as a global, check that jQuery has been loaded, then
-    // append hermes to the window.
+    // Finally, if the module is being loaded as a global append hermes to the window.
     window.hermes = hermes;
 }());
